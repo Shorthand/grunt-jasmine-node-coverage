@@ -60,7 +60,7 @@ module.exports = function (grunt) {
                 //initialize the global variable to stop mocha from complaining about leaks
                 global[coverageVar] = {};
 
-                process.once('exit', function () {
+                var coverageReportCallback = function() {
                     var file = Path.resolve(reportingDir, 'coverage.json'),
                         collector,
                         cov;
@@ -126,9 +126,8 @@ module.exports = function (grunt) {
                             }
                         });
                     });
-
-                });
-                runFn();
+                };
+                runFn(coverageReportCallback);
             });
 
     };
@@ -168,23 +167,8 @@ module.exports = function (grunt) {
         // Tell grunt this task is asynchronous.
         var done = this.async();
         var regExpSpec = new RegExp(match + (matchall ? "" : specNameMatcher + "\\.") + "(" + extensions + ")$", 'i');
-        var onComplete = function (runner, log) {
-            var exitCode;
-            util.print('\n');
-            if (runner.results().failedCount === 0) {
-                exitCode = 0;
-            } else {
-                exitCode = 1;
-            }
 
-            if (forceExit) {
-                process.exit(exitCode);
-            }
-            done(exitCode === 0);
-        };
-
-
-        var runFn = function () {
+        var runFn = function (coverageReportCallback) {
 
 
             if (specFolders == null) {
@@ -199,6 +183,22 @@ module.exports = function (grunt) {
                 showColors = true;
             }
 
+            var onComplete = function(runner, log) {
+                var exitCode;
+                util.print('\n');
+                if (runner.results().failedCount === 0) {
+                    exitCode = 0;
+                } else {
+                    exitCode = 1;
+                }
+
+                coverageReportCallback();
+
+                if (forceExit) {
+                    process.exit(exitCode);
+                }
+                done(exitCode === 0);
+            };
 
             var options = {
                 specFolders: specFolders,
